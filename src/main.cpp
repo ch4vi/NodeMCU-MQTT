@@ -5,10 +5,18 @@
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h> //https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA
 
+/*
+ * Windows start mosquitto in terminal (no powershell)
+ * to start -> .../mosquitto> mosquitto -c mosquitto.conf -v
+ * to stop ->  .../mosquitto> net stop mosquitto
+ * 
+ * subscribe to all -> mosquitto_sub -h 192.168.1.141 -t "#" -v
+ */
+
 //USER CONFIGURED SECTION START//
 const char *ssid = "BAZZINGA";
-const char *password = "Ram0ns Dog Has No Tail";
-const char *mqtt_server = "http://test.mosquitto.org/";
+const char *password = "12345";
+const char *mqtt_server = "192.168.1.141";
 const int mqtt_port = 1883;
 const char *mqtt_user = "YOUR_MQTT_USERNAME";
 const char *mqtt_pass = "YOUR_MQTT_PASSWORD";
@@ -74,7 +82,7 @@ void reconnect()
           client.publish("checkIn/DoorbellMCU", "Reconnected");
         }
         // ... and resubscribe
-        client.subscribe("doorbell/commands");
+        client.subscribe("doorbell/set");
       }
       else
       {
@@ -103,14 +111,14 @@ void callback(char *topic, byte *payload, unsigned int length)
   String newPayload = String((char *)payload);
   Serial.println(newPayload);
   Serial.println();
-  if (newTopic == "doorbell/commands")
+  if (newTopic == "doorbell/set")
   {
-    if (newPayload == "Silent Doorbell")
+    if (newPayload == "Silent")
     {
       digitalWrite(silencePin, LOW);
       client.publish("state/doorbell", "Silent Doorbell", true);
     }
-    if (newPayload == "Audio Doorbell")
+    if (newPayload == "Audio")
     {
       digitalWrite(silencePin, HIGH);
       client.publish("state/doorbell", "Audio Doorbell", true);
@@ -125,9 +133,9 @@ void resetTrigger()
 
 void getDoorBell()
 {
-
   if (digitalRead(doorBellPin) == 1 && alreadyTriggered == false)
   {
+    Serial.println("ring");
     client.publish("doorbell", "Ding");
     alreadyTriggered = true;
     timer.setTimeout(6000, resetTrigger);
